@@ -6,6 +6,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+  auth, 
+  googleProvider, 
+  signInWithPopup, 
+  onAuthStateChanged, 
+  User as FirebaseUser 
+} from './firebase';
+import {
   Cpu, 
   Terminal, 
   Cpu as Microchip, 
@@ -850,12 +857,25 @@ const BootAnimation = ({ onFinish }: { onFinish: () => void }) => {
   );
 };
 
-const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
+const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      onLogin(result.user);
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Giriş yapılamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = () => {
     setIsLoading(true);
-    setTimeout(onLogin, 1500);
+    setTimeout(() => onLogin(), 1500);
   };
 
   return (
@@ -934,7 +954,11 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60">
+            <button 
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60"
+            >
                <span className="font-bold">G</span> GOOGLE
             </button>
             <button className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60">
@@ -959,14 +983,32 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
 
 export default function App() {
   const [authStatus, setAuthStatus] = useState<'login' | 'booting' | 'dashboard'>('login');
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [activePage, setActivePage] = useState<Page>('panel');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const handleLogin = () => setAuthStatus('booting');
-  const handleBootFinish = () => setAuthStatus('dashboard');
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setAuthStatus('dashboard');
+      } else {
+        setUser(null);
+        setAuthStatus('login');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-  if (authStatus === 'login') return <LoginPage onLogin={handleLogin} />;
-  if (authStatus === 'booting') return <BootAnimation onFinish={handleBootFinish} />;
+  const handleLogin = (newUser?: FirebaseUser) => {
+    if (newUser) setUser(newUser);
+    setAuthStatus('booting');
+  };
+  const handleBootFinish = () => setAuthStatus('dashboard');
+  const handleLogout = async () => {
+    await auth.signOut();
+    setAuthStatus('login');
+  };
 
   const menuItems = [
     { id: 'panel', label: 'Panel', icon: LayoutDashboard },
@@ -1019,13 +1061,13 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-           <button 
-             onClick={() => setAuthStatus('login')}
-             className="w-full flex items-center gap-4 px-4 py-3 text-neon-pink hover:bg-neon-pink/10 rounded-xl transition-all font-display text-[10px] tracking-widest"
-           >
-             <LogOut size={16} />
-             {sidebarOpen && 'OTURUMU KAPAT'}
-           </button>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-4 px-4 py-3 text-neon-pink hover:bg-neon-pink/10 rounded-xl transition-all font-display text-[10px] tracking-widest"
+            >
+              <LogOut size={16} />
+              {sidebarOpen && 'OTURUMU KAPAT'}
+            </button>
         </div>
       </aside>
 
@@ -1041,7 +1083,9 @@ export default function App() {
                 <h1 className="text-sm font-display tracking-widest uppercase">
                   {menuItems.find(m => m.id === activePage)?.label}
                 </h1>
-                <span className="text-[8px] italic opacity-30">OPERATOR: kilincyamanefe557@gmail.com // LEVEL 8</span>
+                <span className="text-[8px] italic opacity-30">
+                  OPERATOR: {user?.email || 'Misafir'} // LEVEL 8
+                </span>
              </div>
            </div>
 
@@ -1056,8 +1100,12 @@ export default function App() {
                 <div className="absolute top-2 right-2 w-2 h-2 bg-neon-pink rounded-full border-2 border-dark-bg" />
               </button>
               <div className="relative">
-                <div className="w-10 h-10 rounded-full border-2 border-neon-blue/30 p-1 flex items-center justify-center">
-                  <User size={20} className="text-neon-blue" />
+                <div className="w-10 h-10 rounded-full border-2 border-neon-blue/30 p-1 flex items-center justify-center overflow-hidden">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="Profile" className="w-full h-full rounded-full" />
+                  ) : (
+                    <User size={20} className="text-neon-blue" />
+                  )}
                 </div>
               </div>
            </div>
