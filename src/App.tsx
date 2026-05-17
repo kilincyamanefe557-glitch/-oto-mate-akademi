@@ -935,16 +935,16 @@ const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
           </div>
 
           <button 
-            onClick={handleLogin}
+            onClick={handleGoogleLogin}
             disabled={isLoading}
             className="w-full group relative py-4 bg-white text-dark-bg font-display font-bold tracking-[0.2em] rounded-xl overflow-hidden active:scale-95 transition-all"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-3">
                  <div className="w-4 h-4 border-2 border-dark-bg border-t-transparent rounded-full animate-spin" />
-                 DOĞRULANIYOR...
+                 SİSTEME BAĞLANILIYOR...
               </div>
-            ) : 'TERMİNALİ BAŞLAT'}
+            ) : 'GOOGLE İLE BAŞLAT'}
           </button>
 
           <div className="relative flex items-center gap-4 py-2">
@@ -953,21 +953,14 @@ const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1">
             <button 
               onClick={handleGoogleLogin}
               disabled={isLoading}
               className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60"
             >
-               <span className="font-bold">G</span> GOOGLE
+               <span className="font-bold">G</span> GOOGLE İLE GİRİŞ YAP
             </button>
-            <button className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60">
-               <span className="font-bold font-sans">A</span> APPLE
-            </button>
-          </div>
-
-          <div className="text-center pt-2">
-             <button onClick={onLogin} className="text-[10px] text-neon-blue font-display tracking-widest opacity-60 hover:opacity-100 transition-opacity">MİSAFİR OPERATÖR OLARAK DEVAM ET</button>
           </div>
         </GlassCard>
 
@@ -1007,8 +1000,12 @@ export default function App() {
   const handleBootFinish = () => setAuthStatus('dashboard');
   const handleLogout = async () => {
     await auth.signOut();
+    setUser(null);
     setAuthStatus('login');
   };
+
+  if (authStatus === 'login') return <LoginPage onLogin={handleLogin} />;
+  if (authStatus === 'booting') return <BootAnimation onFinish={handleBootFinish} />;
 
   const menuItems = [
     { id: 'panel', label: 'Panel', icon: LayoutDashboard },
