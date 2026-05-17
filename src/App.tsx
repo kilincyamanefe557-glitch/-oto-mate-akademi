@@ -869,22 +869,21 @@ const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      // Mobil cihazlar ve pop-up engelleyiciler için popup'ı deneriz, 
-      // ancak en sağlamı yönlendirme (redirect) kullanımıdır.
-      // Paylaşılan linklerde popup genellikle engellenir.
-      await signInWithPopup(auth, googleProvider).catch(async (error) => {
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-          await signInWithRedirect(auth, googleProvider);
-        } else {
-          throw error;
-        }
-      });
+      // Önce Popup deniyoruz
+      const result = await signInWithPopup(auth, googleProvider);
+      onLogin(result.user);
     } catch (error: any) {
       console.error("Login failed:", error);
+      
+      // Eğer domain yetkili değilse veya popup engellendiyse redirect'e zorla
       if (error.code === 'auth/unauthorized-domain') {
-        alert("HATA: Bu alan adı Firebase üzerinde yetkilendirilmemiş. Lütfen Firebase Console'dan Authorized Domains listesine bu adresi ekleyin.");
+        const currentDomain = window.location.hostname;
+        alert(`HATA: Bu alan adı (${currentDomain}) Firebase'de yetkilendirilmemiş.\n\nÇÖZÜM:\n1. Firebase Console'a gidin.\n2. Authentication > Settings > Authorized Domains kısmına "${currentDomain}" adresini ekleyin.\n\nLink: https://console.firebase.google.com/project/gen-lang-client-0913085288/authentication/settings`);
+      } else if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        // Popup engellendiyse redirect yöntemine geç
+        await signInWithRedirect(auth, googleProvider);
       } else {
-        alert("Giriş yapılamadı. Google hesabınızla giriş yaparken bir sorun oluştu.");
+        alert("Giriş yapılamadı: " + (error.message || "Bilinmeyen hata"));
       }
     } finally {
       setIsLoading(false);
