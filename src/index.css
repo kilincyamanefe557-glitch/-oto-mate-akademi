@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Orbitron", sans-serif;
+
+  --color-dark-bg: #050816;
+  --color-card-bg: #0B1023;
+  --color-accent-bg: #121A35;
+  --color-neon-blue: #00E5FF;
+  --color-neon-purple: #7B61FF;
+  --color-neon-pink: #FF2E63;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-white font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-wider;
+  }
+}
+
+.glass-card {
+  @apply bg-card-bg/60 backdrop-blur-xl border border-accent-bg rounded-2xl;
+}
+
+.neon-border-blue {
+  @apply border-neon-blue/20 shadow-[0_0_15px_rgba(0,229,255,0.05)];
+}
+
+.neon-glow-blue {
+  @apply shadow-[0_0_20px_rgba(0,229,255,0.4)];
+}
+
+.neon-text-blue {
+  @apply text-neon-blue drop-shadow-[0_0_8px_rgba(0,229,255,0.6)];
+}
+
+.neon-text-pink {
+  @apply text-neon-pink drop-shadow-[0_0_8px_rgba(255,46,99,0.6)];
+}
+
+.progress-gradient {
+  @apply bg-gradient-to-r from-neon-purple to-neon-blue shadow-[0_0_10px_rgba(0,229,255,0.4)];
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-neon-blue/20 rounded-full hover:bg-neon-blue/40 transition-colors;
+}

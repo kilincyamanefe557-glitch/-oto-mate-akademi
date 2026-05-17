@@ -1,0 +1,6 @@
+{
+  "name": "OTO-MATE Akademi",
+  "description": "Futuristik, modern ve premium AI destekli endüstriyel otomasyon eğitim platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
