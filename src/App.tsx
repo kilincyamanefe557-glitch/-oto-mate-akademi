@@ -9,9 +9,14 @@ import {
   auth, 
   googleProvider, 
   signInWithPopup, 
-  onAuthStateChanged, 
-  User as FirebaseUser 
+  onAuthStateChanged,
+  User as FirebaseUser
 } from './firebase';
+import { 
+  signInWithRedirect, 
+  getRedirectResult,
+  browserPopupRedirectResolver
+} from 'firebase/auth';
 import {
   Cpu, 
   Terminal, 
@@ -861,21 +866,29 @@ const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      onLogin(result.user);
-    } catch (error) {
+      // Mobil cihazlar ve pop-up engelleyiciler için popup'ı deneriz, 
+      // ancak en sağlamı yönlendirme (redirect) kullanımıdır.
+      // Paylaşılan linklerde popup genellikle engellenir.
+      await signInWithPopup(auth, googleProvider).catch(async (error) => {
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+          await signInWithRedirect(auth, googleProvider);
+        } else {
+          throw error;
+        }
+      });
+    } catch (error: any) {
       console.error("Login failed:", error);
-      alert("Giriş yapılamadı. Lütfen tekrar deneyin.");
+      if (error.code === 'auth/unauthorized-domain') {
+        alert("HATA: Bu alan adı Firebase üzerinde yetkilendirilmemiş. Lütfen Firebase Console'dan Authorized Domains listesine bu adresi ekleyin.");
+      } else {
+        alert("Giriş yapılamadı. Google hesabınızla giriş yaparken bir sorun oluştu.");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => onLogin(), 1500);
   };
 
   return (
@@ -907,65 +920,39 @@ const LoginPage = ({ onLogin }: { onLogin: (user?: FirebaseUser) => void }) => {
           <p className="text-xs uppercase tracking-[0.4em] opacity-40 font-display">AI DESTEKLİ ENDÜSTRİYEL EĞİTİM PLATFORMU</p>
         </div>
 
-        <GlassCard className="neon-border-blue p-8 md:p-12 space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-1.5 focus-within:neon-text-blue transition-colors">
-              <label className="text-[10px] font-display uppercase tracking-widest opacity-50 ml-1">Terminal Kimlik / E-Posta</label>
-              <input 
-                type="text" 
-                placeholder="operatör@oto-mate.ai"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:border-neon-blue/50 focus:bg-neon-blue/5 transition-all text-sm"
-              />
-            </div>
-            <div className="space-y-1.5 focus-within:neon-text-pink transition-colors">
-              <label className="text-[10px] font-display uppercase tracking-widest opacity-50 ml-1">Erişim Şifresi</label>
-              <input 
-                type="password" 
-                placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:border-neon-pink/50 focus:bg-neon-pink/5 transition-all text-sm tracking-widest"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-[10px] text-white/40">
-             <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
-               <input type="checkbox" className="accent-neon-blue" /> HATIRLA
-             </label>
-             <span className="cursor-pointer hover:text-neon-blue transition-colors">ERİŞİMİ KAYBETTİM</span>
+        <GlassCard className="neon-border-blue p-8 md:p-12 space-y-8">
+          <div className="space-y-6 text-center">
+             <div className="p-4 bg-neon-blue/5 border border-neon-blue/20 rounded-xl">
+                <p className="text-xs font-display tracking-widest text-[#00E5FF]">SİSTEME ERİŞİM İÇİN KİMLİK DOĞRULAMASI GEREKLİ</p>
+             </div>
+             <p className="text-sm opacity-60">Eğitim portalına devam etmek için lütfen Google hesabınızla giriş yapın.</p>
           </div>
 
           <button 
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full group relative py-4 bg-white text-dark-bg font-display font-bold tracking-[0.2em] rounded-xl overflow-hidden active:scale-95 transition-all"
+            className="w-full group relative py-6 bg-white text-dark-bg font-display font-black tracking-[0.2em] rounded-xl overflow-hidden active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-3">
-                 <div className="w-4 h-4 border-2 border-dark-bg border-t-transparent rounded-full animate-spin" />
-                 SİSTEME BAĞLANILIYOR...
+                 <div className="w-5 h-5 border-2 border-dark-bg border-t-transparent rounded-full animate-spin" />
+                 DOĞRULANIYOR...
               </div>
-            ) : 'GOOGLE İLE BAŞLAT'}
+            ) : (
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl font-sans">G</span>
+                GOOGLE İLE OTURUM AÇ
+              </div>
+            )}
           </button>
 
-          <div className="relative flex items-center gap-4 py-2">
-            <div className="flex-1 h-px bg-white/5" />
-            <span className="text-[8px] opacity-20 uppercase font-display tracking-widest">Hızlı Erişim</span>
-            <div className="flex-1 h-px bg-white/5" />
-          </div>
-
-          <div className="grid grid-cols-1">
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-xs opacity-60"
-            >
-               <span className="font-bold">G</span> GOOGLE İLE GİRİŞ YAP
-            </button>
+          <div className="text-center">
+             <p className="text-[9px] opacity-30 font-display tracking-[0.2em]">BU TERMİNAL RESMİ OPERATÖRLER İÇİNDİR</p>
           </div>
         </GlassCard>
 
         <p className="text-center mt-8 text-[10px] opacity-30 font-display uppercase tracking-widest">
-           SİSTEM SÜRÜMÜ: v2.4.0-STABLE // AI CORE: LOADED
+           SİSTEM SÜRÜMÜ: v2.4.5-FINAL // SECURE CORE: ACTIVE
         </p>
       </motion.div>
     </div>
@@ -981,10 +968,21 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
+    // Redirect dönüşlerini yönet
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        setUser(result.user);
+        setAuthStatus('booting');
+      }
+    }).catch((error) => {
+      console.error("Redirect login error:", error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        setAuthStatus('dashboard');
+        // Eğer zaten booting aşamasındaysak veya dashboard'daysak tekrar tetikleme
+        setAuthStatus((prev) => (prev === 'login' ? 'booting' : prev));
       } else {
         setUser(null);
         setAuthStatus('login');
